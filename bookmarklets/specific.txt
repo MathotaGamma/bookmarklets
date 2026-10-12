@@ -1,8 +1,117 @@
-javascript:!function(){try{
+(function () {
+  try {
+    var owner = 'MathotaGamma';
+    var repo = 'extensions';
+    var dir = 'scripts';
+    var branch = '';
+    var file = 'script.js';
 
-var owner="MathotaGamma";
-var repo="extensions";
-var dir="scripts";
-var branch="";
+    dir = dir.replace(/^\/+|\/+$/g, '');
+    file = file.replace(/^\/+/, '');
+    var path = (dir ? dir + '/' : '') + file;
+    var br = branch || 'HEAD';
+    var PROBE = 'data-file-runner-probe';
 
-var t="applet-picker";dir=dir.replace(/^\/+|\/+$/g,"");var e=dir?dir+"/":"";var n=document.getElementById(t);n&&n.remove();function r(t){return t.split("/").map(encodeURIComponent).join("/")}function o(t){var e=document.createElement("script");e.textContent=t;document.documentElement.appendChild(e);e.remove()}function a(t){fetch(t.url).then(function(t){if(!t.ok)throw new Error("HTTP "+t.status);return t.text()}).then(o).catch(function(){var n=document.createElement("script");n.src="https://cdn.jsdelivr.net/gh/"+owner+"/"+repo+"@"+t.branch+"/"+e+r(t.name);n.onerror=function(){alert("読み込めませんでした: "+t.name)};document.body.appendChild(n)})}function c(t,e){return t.name<e.name?-1:t.name>e.name?1:0}function i(){var t="https://api.github.com/repos/"+owner+"/"+repo;var n=branch?Promise.resolve(branch):fetch(t).then(function(t){if(!t.ok)throw new Error("HTTP "+t.status);return t.json()}).then(function(t){return t.default_branch||"main"});return n.then(function(n){return fetch(t+"/git/trees/"+encodeURIComponent(n)+"?recursive=1").then(function(t){if(!t.ok)throw new Error("HTTP "+t.status);return t.json()}).then(function(t){return t.tree.filter(function(t){return"blob"===t.type&&0===t.path.indexOf(e)&&/\.js$/i.test(t.path)}).map(function(t){var o=t.path.slice(e.length);return{name:o,url:"https://raw.githubusercontent.com/"+owner+"/"+repo+"/"+n+"/"+e+r(o),branch:n}}).sort(c)})})}function u(){var t=branch||"main";return fetch("https://data.jsdelivr.com/v1/package/gh/"+owner+"/"+repo+"@"+t+"/flat").then(function(t){if(!t.ok)throw new Error("HTTP "+t.status);return t.json()}).then(function(n){var o="/"+e;return n.files.filter(function(t){return 0===t.name.indexOf(o)&&/\.js$/i.test(t.name)}).map(function(n){var a=n.name.slice(o.length);return{name:a,url:"https://raw.githubusercontent.com/"+owner+"/"+repo+"/"+t+"/"+e+r(a),branch:t}}).sort(c)})}var d=document.createElement("div");d.id=t;d.style.cssText="position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:16px sans-serif";var s=document.createElement("div");s.style.cssText="background:%23fff;color:%23111;border-radius:12px;padding:14px;width:min(92vw,420px);max-height:80vh;overflow:auto";d.appendChild(s);d.addEventListener("click",function(t){t.target===d&&d.remove()});function m(t,e,n,r){var o=document.createElement("button");o.textContent=t;o.style.cssText="display:block;width:100%25;margin:6px 0;padding:12px;border:0;border-radius:8px;font-size:16px;text-align:left;word-break:break-all;background:"+e+";color:"+n;o.addEventListener("click",r);s.appendChild(o)}function f(t){s.textContent="";var e=document.createElement("div");e.textContent=owner+"/"+repo+(dir?"/"+dir:"");e.style.cssText="font-weight:700;margin-bottom:8px";s.appendChild(e);if(!t.length){var n=document.createElement("div");n.textContent=(dir||"リポジトリ")+" 内に .js ファイルが見つかりませんでした";s.appendChild(n)}t.forEach(function(t){m(t.name,"%23E8F0FE","%23111",function(){d.remove();a(t)})});m("閉じる","%23ddd","%23111",function(){d.remove()})}s.textContent="一覧を取得中…";document.body.appendChild(d);i().catch(u).then(f).catch(function(t){s.textContent="一覧を取得できませんでした: "+t;m("閉じる","%23ddd","%23111",function(){d.remove()})})}catch(l){alert("エラー: "+l)}}();void 0;
+    // パスを区切りごとにURLエンコード(スペースや日本語を含む名前に対応)
+    function enc(p) {
+      return p.split('/').map(encodeURIComponent).join('/');
+    }
+
+    // <script> にコードを入れて実行できるか、事前に確かめる
+    function canRunInline() {
+      var root = document.documentElement;
+      root.removeAttribute(PROBE);
+      var s = document.createElement('script');
+      s.textContent = "document.documentElement.setAttribute('" + PROBE + "','1')";
+      root.appendChild(s);
+      s.remove();
+      var ok = root.getAttribute(PROBE) === '1';
+      root.removeAttribute(PROBE);
+      return ok;
+    }
+
+    function runInline(code) {
+      var s = document.createElement('script');
+      s.textContent = code;
+      document.documentElement.appendChild(s);
+      s.remove();
+    }
+
+    // Blob の <script> として実行。読み込めたら true
+    function runBlob(code) {
+      return new Promise(function (resolve) {
+        var url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+        var s = document.createElement('script');
+        function done(ok) {
+          s.remove();
+          URL.revokeObjectURL(url);
+          resolve(ok);
+        }
+        s.onload = function () {
+          done(true);
+        };
+        s.onerror = function () {
+          done(false);
+        };
+        s.src = url;
+        document.documentElement.appendChild(s);
+      });
+    }
+
+    // jsDelivr から <script> で読み込む。読み込めたら true
+    function runFromCdn() {
+      var getBranch = branch
+        ? Promise.resolve(branch)
+        : fetch('https://api.github.com/repos/' + owner + '/' + repo)
+            .then(function (r) {
+              return r.ok ? r.json() : {};
+            })
+            .then(function (d) {
+              return d.default_branch || 'main';
+            })
+            .catch(function () {
+              return 'main';
+            });
+      return getBranch.then(function (b) {
+        return new Promise(function (resolve) {
+          var s = document.createElement('script');
+          s.onload = function () {
+            resolve(true);
+          };
+          s.onerror = function () {
+            s.remove();
+            resolve(false);
+          };
+          s.src = 'https://cdn.jsdelivr.net/gh/' + owner + '/' + repo + '@' + b + '/' + enc(path);
+          document.documentElement.appendChild(s);
+        });
+      });
+    }
+
+    fetch('https://raw.githubusercontent.com/' + owner + '/' + repo + '/' + br + '/' + enc(path))
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function (code) {
+        if (canRunInline()) {
+          runInline(code);
+          return true;
+        }
+        return runBlob(code);
+      })
+      .catch(function () {
+        return false;
+      })
+      .then(function (ok) {
+        return ok || runFromCdn();
+      })
+      .then(function (ok) {
+        if (!ok) {
+          alert('実行できませんでした: ' + path + '\n(ファイル名・リポジトリの公開設定・ページの制限を確認してください)');
+        }
+      });
+  } catch (e) {
+    alert('エラー: ' + e);
+  }
+})();
