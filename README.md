@@ -1,2 +1,2 @@
-# bookmarklets
-ブックマークレットの保存場
+# extension
+ブックマークレットとUserscrits用コードの保存場
