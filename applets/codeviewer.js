@@ -8,6 +8,7 @@ position: fixed;
 bottom: 0;
 left: 0;
 z-index: 998;`;
+codeViewerDiv.innerText = html;
 const codeViewCloserBtn = document.createElement('button');
 codeViewCloserBtn.innerHTML = "close";
 codeViewCloserBtn.style.cssText = `position: fixed;
