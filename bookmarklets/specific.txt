@@ -1,4 +1,4 @@
-(function () {
+javascript:(function () {
   try {
     var owner = 'MathotaGamma';
     var repo = 'extensions';
@@ -115,3 +115,4 @@
     alert('エラー: ' + e);
   }
 })();
+void 0;
